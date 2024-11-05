@@ -45,7 +45,7 @@ module.exports = async (req, res) => {
     // Set CORS headers
     res.setHeader(
       "Access-Control-Allow-Origin",
-      "https://momup.com"
+      "https://momup-client-first.webflow.io"
     ); // Replace with your actual site
     res.setHeader("Access-Control-Allow-Methods", "GET");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
