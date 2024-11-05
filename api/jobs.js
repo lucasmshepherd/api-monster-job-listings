@@ -6,6 +6,9 @@ let tokenExpiry = null;
 const appId = process.env.CLIENT_ID; // Your App ID
 const appSecret = process.env.CLIENT_SECRET; // Your App Secret
 
+console.log("AppId length:", appId.length);
+console.log("AppSecret length:", appSecret.length);
+
 async function getAccessToken() {
   if (!accessToken || Date.now() >= tokenExpiry) {
     try {
