@@ -16,7 +16,7 @@ async function getAccessToken() {
     params.append("client_secret", clientSecret);
 
     const response = await axios.post(
-      "https://auth.monster.com/oauth2/token",
+      "https://api.jobs.com/auth/token",
       params
     );
 
