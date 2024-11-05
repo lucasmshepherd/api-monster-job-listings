@@ -1,27 +1,37 @@
-// api/jobs.js
-
 const axios = require("axios");
 
 let accessToken = null;
 let tokenExpiry = null;
 
-const clientId = process.env.CLIENT_ID; 
-const clientSecret = process.env.CLIENT_SECRET;
+const appId = process.env.CLIENT_ID; // Your App ID
+const appSecret = process.env.CLIENT_SECRET; // Your App Secret
 
 async function getAccessToken() {
   if (!accessToken || Date.now() >= tokenExpiry) {
-    const params = new URLSearchParams();
-    params.append("grant_type", "client_credentials");
-    params.append("client_id", clientId);
-    params.append("client_secret", clientSecret);
+    try {
+      const response = await axios.post(
+        "https://api.jobs.com/auth/token",
+        null,
+        {
+          params: {
+            AppId: appId,
+            AppSecret: appSecret,
+          },
+        }
+      );
 
-    const response = await axios.post(
-      "https://api.jobs.com/auth/token",
-      params
-    );
-
-    accessToken = response.data.access_token;
-    tokenExpiry = Date.now() + response.data.expires_in * 1000 - 60000; // Refresh 1 minute before expiry
+      // Extract the token and expiration time
+      accessToken = response.data.Token;
+      const expiresAt = new Date(response.data.Expires).getTime();
+      // Refresh the token 1 minute before it expires
+      tokenExpiry = expiresAt - 60000;
+    } catch (error) {
+      console.error(
+        "Error obtaining access token:",
+        error.response ? error.response.data : error.message
+      );
+      throw error;
+    }
   }
   return accessToken;
 }
@@ -30,29 +40,47 @@ module.exports = async (req, res) => {
   try {
     const token = await getAccessToken();
 
-    const queryParams = req.query;
+    // Map query parameters to those expected by the API
+    const queryParams = {
+      Keywords: req.query.title || "",
+      Location: req.query.location || "",
+      Radius: req.query.radius || 40,
+      Country: req.query.country || "US",
+      Age: req.query.age || 365,
+      Page: req.query.page || 1,
+      PageSize: req.query.pagesize || 12,
+    };
 
-    const monsterResponse = await axios.get(
-      "https://api.jobs.com/v3/search/jobs",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        params: queryParams, // Forward query parameters from the client
-      }
-    );
+    const apiUrl = "https://api.jobs.com/search"; // Update to the correct endpoint
+
+    const response = await axios.get(apiUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      params: queryParams,
+    });
 
     // Set CORS headers
     res.setHeader(
       "Access-Control-Allow-Origin",
       "https://momup-client-first.webflow.io"
-    ); // Replace with your actual site
+    );
     res.setHeader("Access-Control-Allow-Methods", "GET");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-    res.status(200).json(monsterResponse.data);
+    res.status(200).json(response.data);
   } catch (error) {
-    console.error("Error fetching jobs:", error);
-    res.status(500).json({ error: error.message });
+    if (error.response) {
+      console.error("Error fetching jobs:", {
+        status: error.response.status,
+        data: error.response.data,
+      });
+      res.status(error.response.status).json({ error: error.response.data });
+    } else {
+      console.error("Error fetching jobs:", error.message);
+      res.status(500).json({ error: error.message });
+    }
   }
 };
