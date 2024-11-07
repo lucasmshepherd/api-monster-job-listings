@@ -3,23 +3,14 @@ const axios = require("axios");
 module.exports = async (req, res) => {
   const { q, location } = req.query;
 
-  // CORS headers
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "https://momup-client-first.webflow.io"
-  );
+  // Allow all origins temporarily for debugging; restrict to your Webflow URL once confirmed working
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
     return res.status(200).end();
-  }
-
-  if (!q || !location) {
-    return res
-      .status(400)
-      .json({ error: "Missing query or location parameter" });
   }
 
   const CLIENT_ID = process.env.CLIENT_ID;
@@ -37,13 +28,12 @@ module.exports = async (req, res) => {
       null,
       {
         params: {
-          AppId: CLIENT_ID.trim(), // remove any extra spaces
+          AppId: CLIENT_ID.trim(),
           AppSecret: CLIENT_SECRET.trim(),
         },
       }
     );
 
-    // Check if token is received
     const token = authResponse.data?.Token;
     if (!token) {
       console.error("Failed to retrieve token:", authResponse.data);
