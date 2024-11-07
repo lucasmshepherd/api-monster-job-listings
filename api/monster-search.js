@@ -55,7 +55,7 @@ module.exports = async (req, res) => {
       {
         params: {
           title,
-          where: city,
+          city,
           page,
           perPage,
         },
