@@ -1,15 +1,18 @@
 const axios = require("axios");
 
-module.exports = async (req, res) => {
-  const { title, city, page = 1, perPage = 20 } = req.query;
-
-  // Set CORS headers at the beginning for all responses
+function setCorsHeaders(res) {
   res.setHeader(
     "Access-Control-Allow-Origin",
     "https://momup-client-first.webflow.io"
   );
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+}
+
+module.exports = async (req, res) => {
+  setCorsHeaders(res); // Set CORS headers at the beginning
+
+  const { title, city, page = 1, perPage = 20 } = req.query;
 
   // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
@@ -25,7 +28,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Obtain the token with a 10-second timeout
+    // Obtain the token with a longer timeout
     const authResponse = await axios.post(
       `https://api.jobs.com/auth/token`,
       null,
@@ -46,15 +49,15 @@ module.exports = async (req, res) => {
         .json({ error: "Unauthorized - Invalid credentials" });
     }
 
-    // Make the search request with a 10-second timeout
+    // Make the search request with pagination parameters and a 10-second timeout
     const searchResponse = await axios.get(
       `https://api.jobs.com/v3/search/jobs`,
       {
         params: {
           title,
           where: city,
-          page, // pagination page number
-          perPage, // number of results per page
+          page,
+          perPage,
         },
         headers: {
           Authorization: `Bearer ${token}`,
@@ -74,10 +77,7 @@ module.exports = async (req, res) => {
     console.error("Error in serverless function:", error.message || error);
 
     // Return a CORS-compliant error response with specific timeout handling
-    res.setHeader(
-      "Access-Control-Allow-Origin",
-      "https://momup-client-first.webflow.io"
-    );
+    setCorsHeaders(res); // Ensure CORS headers on error responses
     if (error.code === "ECONNABORTED") {
       res
         .status(504)
