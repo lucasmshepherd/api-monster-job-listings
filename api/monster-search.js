@@ -1,18 +1,27 @@
-// api/monster-search.js
-
 const axios = require("axios");
 
 module.exports = async (req, res) => {
-  const { q, location, page = 1, pagesize = 10 } = req.query;
+  const { q, location } = req.query;
 
-  // Validate input
+  // CORS headers
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "https://momup-client-first.webflow.io"
+  ); // change to your Webflow URL
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  // Handle preflight OPTIONS request
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   if (!q || !location) {
     return res
       .status(400)
       .json({ error: "Missing query or location parameter" });
   }
 
-  // Get the CLIENT_ID and CLIENT_SECRET from environment variables
   const CLIENT_ID = process.env.CLIENT_ID;
   const CLIENT_SECRET = process.env.CLIENT_SECRET;
 
@@ -21,7 +30,6 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Obtain the token
     const authResponse = await axios.post(
       `https://api.jobs.com/auth/token`,
       null,
@@ -35,15 +43,12 @@ module.exports = async (req, res) => {
 
     const token = authResponse.data.Token;
 
-    // Make the search request
     const searchResponse = await axios.get(
       `https://api.jobs.com/v3/search/jobs`,
       {
         params: {
           q,
           where: location,
-          page,
-          pagesize,
         },
         headers: {
           Authorization: `Bearer ${token}`,
@@ -53,7 +58,7 @@ module.exports = async (req, res) => {
 
     res.status(200).json(searchResponse.data);
   } catch (error) {
-    console.error(error.response ? error.response.data : error.message);
+    console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
