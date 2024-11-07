@@ -1,9 +1,9 @@
 const axios = require("axios");
 
 module.exports = async (req, res) => {
-  const { q, location } = req.query;
+  const { q, location, page = 1, perPage = 20 } = req.query; // default to page 1 and 20 results per page
 
-  // Allow all origins temporarily for debugging; restrict to your Webflow URL once confirmed working
+  // CORS headers
   res.setHeader(
     "Access-Control-Allow-Origin",
     "https://momup-client-first.webflow.io"
@@ -45,13 +45,15 @@ module.exports = async (req, res) => {
         .json({ error: "Unauthorized - Invalid credentials" });
     }
 
-    // Make the search request
+    // Make the search request with pagination parameters
     const searchResponse = await axios.get(
       `https://api.jobs.com/v3/search/jobs`,
       {
         params: {
           q,
           where: location,
+          page, // pagination page number
+          perPage, // number of results per page
         },
         headers: {
           Authorization: `Bearer ${token}`,
@@ -59,7 +61,13 @@ module.exports = async (req, res) => {
       }
     );
 
-    res.status(200).json(searchResponse.data);
+    // Extract pagination links from the response headers
+    const paginationLinks = searchResponse.headers["link"];
+
+    res.status(200).json({
+      data: searchResponse.data,
+      paginationLinks,
+    });
   } catch (error) {
     console.error("Error in serverless function:", error.message || error);
     res.status(500).json({ error: "Internal Server Error" });
