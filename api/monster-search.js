@@ -4,7 +4,10 @@ module.exports = async (req, res) => {
   const { q, location } = req.query;
 
   // Allow all origins temporarily for debugging; restrict to your Webflow URL once confirmed working
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "https://momup-client-first.webflow.io"
+  );
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
