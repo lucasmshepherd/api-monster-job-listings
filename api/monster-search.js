@@ -1,7 +1,7 @@
 const axios = require("axios");
 
 module.exports = async (req, res) => {
-  const { q, location, page = 1, perPage = 20 } = req.query;
+  const { title, city, page = 1, perPage = 20 } = req.query;
 
   // Set CORS headers at the beginning for all responses
   res.setHeader(
