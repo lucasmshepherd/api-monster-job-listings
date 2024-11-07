@@ -1,9 +1,9 @@
 const axios = require("axios");
 
 module.exports = async (req, res) => {
-  const { q, location, page = 1, perPage = 20 } = req.query; // default to page 1 and 20 results per page
+  const { q, location, page = 1, perPage = 20 } = req.query;
 
-  // CORS headers
+  // Set CORS headers for all responses, including errors
   res.setHeader(
     "Access-Control-Allow-Origin",
     "https://momup-client-first.webflow.io"
@@ -34,6 +34,7 @@ module.exports = async (req, res) => {
           AppId: CLIENT_ID.trim(),
           AppSecret: CLIENT_SECRET.trim(),
         },
+        timeout: 5000, // Set a 5-second timeout for the token request
       }
     );
 
@@ -58,6 +59,7 @@ module.exports = async (req, res) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        timeout: 5000, // Set a 5-second timeout for the search request
       }
     );
 
@@ -70,6 +72,12 @@ module.exports = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in serverless function:", error.message || error);
-    res.status(500).json({ error: "Internal Server Error" });
+
+    // Return a CORS-compliant error response
+    if (error.code === "ECONNABORTED") {
+      res.status(504).json({ error: "Request timed out" });
+    } else {
+      res.status(500).json({ error: "Internal Server Error" });
+    }
   }
 };
