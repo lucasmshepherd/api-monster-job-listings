@@ -3,7 +3,7 @@ const axios = require("axios");
 module.exports = async (req, res) => {
   const { q, location, page = 1, perPage = 20 } = req.query;
 
-  // Set CORS headers for all responses, including errors
+  // CORS headers
   res.setHeader(
     "Access-Control-Allow-Origin",
     "https://momup-client-first.webflow.io"
@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Obtain the token
+    // Obtain the token with a longer timeout
     const authResponse = await axios.post(
       `https://api.jobs.com/auth/token`,
       null,
@@ -34,7 +34,7 @@ module.exports = async (req, res) => {
           AppId: CLIENT_ID.trim(),
           AppSecret: CLIENT_SECRET.trim(),
         },
-        timeout: 5000, // Set a 5-second timeout for the token request
+        timeout: 10000, // Increase timeout to 10 seconds for the token request
       }
     );
 
@@ -46,7 +46,7 @@ module.exports = async (req, res) => {
         .json({ error: "Unauthorized - Invalid credentials" });
     }
 
-    // Make the search request with pagination parameters
+    // Make the search request with a longer timeout
     const searchResponse = await axios.get(
       `https://api.jobs.com/v3/search/jobs`,
       {
@@ -59,7 +59,7 @@ module.exports = async (req, res) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        timeout: 5000, // Set a 5-second timeout for the search request
+        timeout: 10000, // Increase timeout to 10 seconds for the search request
       }
     );
 
@@ -73,9 +73,11 @@ module.exports = async (req, res) => {
   } catch (error) {
     console.error("Error in serverless function:", error.message || error);
 
-    // Return a CORS-compliant error response
+    // Return a CORS-compliant error response with specific timeout handling
     if (error.code === "ECONNABORTED") {
-      res.status(504).json({ error: "Request timed out" });
+      res
+        .status(504)
+        .json({ error: "Request timed out. Please try again later." });
     } else {
       res.status(500).json({ error: "Internal Server Error" });
     }
