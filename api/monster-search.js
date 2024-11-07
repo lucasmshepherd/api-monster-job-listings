@@ -51,8 +51,8 @@ module.exports = async (req, res) => {
       `https://api.jobs.com/v3/search/jobs`,
       {
         params: {
-          q,
-          where: location,
+          title,
+          where: city,
           page, // pagination page number
           perPage, // number of results per page
         },
