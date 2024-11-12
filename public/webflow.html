@@ -1,0 +1,171 @@
+<div class="pagination">
+  <span id="current-search"></span> <!-- Shows the current search term -->
+</div>
+<div id="results"></div>
+<!-- Pagination controls, separating the page number display -->
+<br/><br/>
+<div class="pagination">
+  <span id="current-page"></span> <!-- Keep this outside of the cleared area -->
+  <div id="pagination-buttons"></div> <!-- Buttons will go here -->
+</div>
+
+<style>
+.pagination { display: block; width: 100%; }
+#current-page { display: block; text-align: center; font-size: 20px; font-weight: bold; }
+#current-search { display: block; text-align: center; font-size: 24px; }
+#pagination-buttons { display: block; text-align: center; }
+#pagination-buttons * { padding: 4px 10px; margin: 4px; border-radius: 999px; color: #fff; background: #6e46ae; font-size: 15px; text-transform: uppercase; }
+</style>
+
+<script>
+  let currentPage = 1;
+  let currentKeyword = 'Executive'; // set default search values globally
+  let currentLocation = 'Boston';   // set default search values globally
+
+  // Call fetchJobs on page load with default values
+  document.addEventListener('DOMContentLoaded', () => {
+    fetchJobs(currentKeyword, currentLocation, currentPage); // Load initial jobs on page load
+  });
+
+  // Attach a search form submission event to trigger a new search
+  document.getElementById('search-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    // Get values from the search form inputs
+    currentKeyword = document.getElementById('keyword').value;
+    currentLocation = document.getElementById('location').value;
+
+    // Reset to the first page and fetch jobs based on new search terms
+    currentPage = 1;
+    fetchJobs(currentKeyword, currentLocation, currentPage);
+  });
+
+  async function fetchJobs(keyword, location, page) {
+    // Construct the URL for the request and log it for debugging
+    const url = `https://api-monster-job-listings.vercel.app/api/monster-search?title=${encodeURIComponent(keyword)}&city=${encodeURIComponent(location)}&page=${page}&perPage=20`;
+    console.log("Requesting URL:", url); // Log the full URL to the console
+
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (response.ok) {
+        displayResults(data.data);
+        setupPagination(data.paginationLinks);
+      } else {
+        document.getElementById('results').innerHTML = `<p style="display: block; text-align: center; padding: 40px 20px; color: red; font-weight: bold;">Error: ${data.error}</p>`;
+      }
+    } catch (error) {
+      console.error("Fetch Error:", error);
+      document.getElementById('results').innerHTML = `<p style="display: block; text-align: center; padding: 40px 20px; color: red; font-weight: bold;">An error occurred.</p>`;
+    }
+  }
+
+  function displayResults(results) {
+    if (!Array.isArray(results) || results.length === 0) {
+      document.getElementById('results').innerHTML = '<p style="display: block; text-align: center; padding: 40px 20px;">No results found.</p>';
+      return;
+    }
+
+    let html = '';
+    results.forEach(job => {
+      const timeAgo = calculateTimeAgo(job.datecreated);
+
+      const formattedSummary = job.summary.replace(/\n/g, '<br>');
+
+      html += `
+        <div class="monster-jobs-item">
+          <div class="monster-jobs-item-content">
+              <div class="margin-bottom margin-tiny">
+                <div class="monster-jobs-heading">
+                    <div class="monster-jobs-heading-text">
+                      <h3 class="monster-jobs-title">${job.title}</h3>
+                      <div class="monster-jobs-title-company">${job.companyname}</div>
+                    </div>
+                </div>
+              </div>
+              <div class="margin-bottom margin-small">
+                <p class="text-color-dark-grey">${formattedSummary}</p>
+              </div>
+              <div class="detail-pillbox">
+                <div class="detail-item">
+                    <div class="code-embed-3 w-embed">
+                      <svg style="max-width: 10px; max-height: 10px;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                          <path d="M256 0a256 256 0 1 1 0 512A256 256 0 1 1 256 0zM232 120l0 136c0 8 4 15.5 10.7 20l96 64c11 7.4 25.9 4.4 33.3-6.7s4.4-25.9-6.7-33.3L280 243.2 280 120c0-13.3-10.7-24-24-24s-24 10.7-24 24z"></path>
+                      </svg>
+                    </div>
+                    <div>${timeAgo}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="code-embed-3 w-embed">
+                      <svg style="max-width: 14px; max-height: 14px;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--><path d="M256 0c17.7 0 32 14.3 32 32l0 34.7C368.4 80.1 431.9 143.6 445.3 224l34.7 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-34.7 0C431.9 368.4 368.4 431.9 288 445.3l0 34.7c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-34.7C143.6 431.9 80.1 368.4 66.7 288L32 288c-17.7 0-32-14.3-32-32s14.3-32 32-32l34.7 0C80.1 143.6 143.6 80.1 224 66.7L224 32c0-17.7 14.3-32 32-32zM128 256a128 128 0 1 0 256 0 128 128 0 1 0 -256 0zm128-80a80 80 0 1 1 0 160 80 80 0 1 1 0-160z"/></svg>
+                    </div>
+                    <div>${job.location}</div>
+                </div>
+              </div>
+              <div class="monster-jobs-button-wrapper"><a href="${job.url}" target="_blank" class="button w-button">APPLY&nbsp;TO&nbsp;JOB</a><a href="${job.monsterurl}" target="_blank" class="button monster w-button">M</a></div>
+          </div>
+        </div>
+      `;
+    });
+    document.getElementById('results').innerHTML = html;
+  }
+
+  function setupPagination(paginationLinks) {
+    const paginationButtonsContainer = document.getElementById('pagination-buttons');
+    paginationButtonsContainer.innerHTML = ''; // Only clear the buttons, not the page number
+
+    const currentPageDisplay = document.getElementById('current-page');
+    const currentSearchDisplay = document.getElementById('current-search'); // Display search term
+    if (currentPageDisplay) {
+      currentPageDisplay.innerText = `Page ${currentPage}`;
+    }
+    if (currentSearchDisplay) {
+      currentSearchDisplay.innerText = `${currentKeyword} Jobs in ${currentLocation}`; // Update with search term
+    }
+
+    const hasPrev = paginationLinks && paginationLinks.includes('rel="prev"');
+    const hasNext = paginationLinks && paginationLinks.includes('rel="next"');
+
+    if (currentPage > 1) {
+      const prevButton = document.createElement('button');
+      prevButton.innerText = 'Previous';
+      prevButton.onclick = () => {
+        currentPage -= 1;
+        fetchJobs(currentKeyword, currentLocation, currentPage); // use current search terms
+      };
+      paginationButtonsContainer.appendChild(prevButton);
+    }
+
+    if (hasNext) {
+      const nextButton = document.createElement('button');
+      nextButton.innerText = 'Next';
+      nextButton.onclick = () => {
+        currentPage += 1;
+        fetchJobs(currentKeyword, currentLocation, currentPage); // use current search terms
+      };
+      paginationButtonsContainer.appendChild(nextButton);
+    }
+  }
+
+  function calculateTimeAgo(dateString) {
+    const date = new Date(dateString + ' UTC');
+    const now = new Date();
+
+    const seconds = Math.floor((now - date) / 1000);
+    let interval = Math.floor(seconds / 31536000);
+
+    if (interval >= 1) return interval === 1 ? `${interval} year ago` : `${interval} years ago`;
+    interval = Math.floor(seconds / 2592000);
+    if (interval >= 1) return interval === 1 ? `${interval} month ago` : `${interval} months ago`;
+    interval = Math.floor(seconds / 604800);
+    if (interval >= 1) return interval === 1 ? `${interval} week ago` : `${interval} weeks ago`;
+    interval = Math.floor(seconds / 86400);
+    if (interval >= 1) return interval === 1 ? `${interval} day ago` : `${interval} days ago`;
+    interval = Math.floor(seconds / 3600);
+    if (interval >= 1) return interval === 1 ? `${interval} hour ago` : `${interval} hours ago`;
+    interval = Math.floor(seconds / 60);
+    if (interval >= 1) return interval === 1 ? `${interval} minute ago` : `${interval} minutes ago`;
+    return 'Just now';
+  }
+</script>

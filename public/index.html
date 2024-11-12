@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Monster.com Job Search</title>
+  <style>
+    /* Basic styling for the job listings */
+    .job-listing {
+      border: 1px solid #ccc;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .job-listing img {
+      max-width: 100px;
+      height: auto;
+    }
+    .job-header {
+      display: flex;
+      align-items: center;
+    }
+    .job-header img {
+      margin-right: 15px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Job Search</h1>
+  <form id="search-form">
+    <label for="keyword">Keyword:</label>
+    <input type="text" id="keyword" name="keyword" value="women" required><br><br>
+
+    <label for="location">Location:</label>
+    <input type="text" id="location" name="location" value="seattle" required><br><br>
+
+    <button type="submit">Search</button>
+  </form>
+
+  <h2>Results:</h2>
+  <div id="results"></div>
+
+  <script>
+  let currentPage = 1;
+
+  document.getElementById('search-form').addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    const keyword = document.getElementById('keyword').value;
+    const location = document.getElementById('location').value;
+    currentPage = 1; // Reset to the first page on new search
+    fetchJobs(keyword, location, currentPage);
+  });
+
+  async function fetchJobs(keyword, location, page) {
+    try {
+      const response = await fetch(`/api/monster-search?q=${encodeURIComponent(keyword)}&location=${encodeURIComponent(location)}&page=${page}&perPage=20`);
+      const data = await response.json();
+
+      if (response.ok) {
+        displayResults(data.data);
+        setupPagination(data.paginationLinks);
+      } else {
+        document.getElementById('results').innerHTML = `<p>Error: ${data.error}</p>`;
+      }
+    } catch (error) {
+      console.error(error);
+      document.getElementById('results').innerHTML = `<p>An error occurred.</p>`;
+    }
+  }
+
+  function displayResults(results) {
+    if (!Array.isArray(results) || results.length === 0) {
+      document.getElementById('results').innerHTML = '<p>No results found.</p>';
+      return;
+    }
+
+    let html = '';
+    results.forEach(job => {
+      const companyLogo = 'https://via.placeholder.com/100x50?text=Logo';
+      const timeAgo = calculateTimeAgo(job.datecreated);
+
+      const formattedSummary = job.summary.replace(/\n/g, '<br>');
+
+      html += `
+        <div class="job-listing">
+          <div class="job-header">
+            <img src="${companyLogo}" alt="Company Logo">
+            <h3><a href="${job.url}" target="_blank">${job.title}</a></h3>
+          </div>
+          <p><strong>Company:</strong> ${job.companyname}</p>
+          <p><strong>Location:</strong> ${job.location}</p>
+          <p><strong>Posted:</strong> ${timeAgo}</p>
+          <p>${formattedSummary}</p>
+          <p>
+            <a href="${job.url}" target="_blank">Apply Now</a> |
+            <a href="${job.monsterurl}" target="_blank">View on Monster</a>
+          </p>
+        </div>
+      `;
+    });
+    document.getElementById('results').innerHTML = html;
+  }
+
+  function setupPagination(paginationLinks) {
+    const paginationButtonsContainer = document.getElementById('pagination');
+    paginationButtonsContainer.innerHTML = ''; // Clear existing pagination buttons
+
+    const hasPrev = paginationLinks && paginationLinks.includes('rel="prev"');
+    const hasNext = paginationLinks && paginationLinks.includes('rel="next"');
+
+    // Previous button
+    if (hasPrev && currentPage > 1) {
+      const prevButton = document.createElement('button');
+      prevButton.innerText = 'Previous';
+      prevButton.onclick = () => {
+        currentPage -= 1;
+        const keyword = document.getElementById('keyword').value;
+        const location = document.getElementById('location').value;
+        fetchJobs(keyword, location, currentPage);
+      };
+      paginationButtonsContainer.appendChild(prevButton);
+    }
+
+    // Next button
+    if (hasNext) {
+      const nextButton = document.createElement('button');
+      nextButton.innerText = 'Next';
+      nextButton.onclick = () => {
+        currentPage += 1;
+        const keyword = document.getElementById('keyword').value;
+        const location = document.getElementById('location').value;
+        fetchJobs(keyword, location, currentPage);
+      };
+      paginationButtonsContainer.appendChild(nextButton);
+    }
+  }
+
+  function calculateTimeAgo(dateString) {
+    const date = new Date(dateString + ' UTC');
+    const now = new Date();
+
+    const seconds = Math.floor((now - date) / 1000);
+    let interval = Math.floor(seconds / 31536000);
+
+    if (interval >= 1) return interval === 1 ? `${interval} year ago` : `${interval} years ago`;
+    interval = Math.floor(seconds / 2592000);
+    if (interval >= 1) return interval === 1 ? `${interval} month ago` : `${interval} months ago`;
+    interval = Math.floor(seconds / 604800);
+    if (interval >= 1) return interval === 1 ? `${interval} week ago` : `${interval} weeks ago`;
+    interval = Math.floor(seconds / 86400);
+    if (interval >= 1) return interval === 1 ? `${interval} day ago` : `${interval} days ago`;
+    interval = Math.floor(seconds / 3600);
+    if (interval >= 1) return interval === 1 ? `${interval} hour ago` : `${interval} hours ago`;
+    interval = Math.floor(seconds / 60);
+    if (interval >= 1) return interval === 1 ? `${interval} minute ago` : `${interval} minutes ago`;
+    return 'Just now';
+  }
+</script>
+
+<div id="pagination"></div>
+
+</body>
+</html>
