@@ -1,13 +1,22 @@
 const axios = require("axios");
 
-function setCorsHeaders(res) {
-  res.setHeader("Access-Control-Allow-Origin", "https://www.momup.com");
+function setCorsHeaders(res, origin) {
+  const allowedOrigins = [
+    "https://www.momup.com",
+    "https://momup-client-first.webflow.io",
+  ];
+
+  // Check if the origin of the request is in the list of allowed origins
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
 module.exports = async (req, res) => {
-  setCorsHeaders(res); // Set CORS headers at the beginning
+  setCorsHeaders(res, req.headers.origin); // Pass the request's origin to the function
 
   const { title, city, page = 1, perPage = 20 } = req.query;
 
